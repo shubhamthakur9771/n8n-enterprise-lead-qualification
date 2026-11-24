@@ -1,0 +1,551 @@
+	
+name	"Enterprise Lead Qualification Engine"
+nodes	
+0	
+parameters	
+httpMethod	"POST"
+path	"lead-qualification-demo"
+responseMode	"responseNode"
+options	{}
+type	"n8n-nodes-base.webhook"
+typeVersion	2.1
+position	
+0	-400
+1	-32
+id	"342de641-6614-4033-9c3d-fd80c266d481"
+name	"Webhook"
+1	
+parameters	
+jsCode	"return items.map(item => {\n  const data = item.json.body;\n\n  return {\n    json: {\n      name: data.name?.trim(),\n      email: data.email?.toLowerCase().trim(),\n      city: data.city?.toLowerCase().trim(),\n      budget: Number(data.budget),\n      source: data.source,\n      created_at: new Date().toISOString()\n    }\n  };\n});"
+type	"n8n-nodes-base.code"
+typeVersion	2
+position	
+0	-192
+1	-32
+id	"910df4bc-9dc8-4630-95e6-79fd8a128ee4"
+name	"Data Cleaning Layer"
+2	
+parameters	
+jsCode	'return items.map(item => {\n  let lead = item.json;\n  let score = 0;\n\n  if (lead.budget > 50000) score += 50;\n  else if (lead.budget > 30000) score += 30;\n  else score += 10;\n\n  if (lead.city === "bangalore") score += 30;\n  else if (lead.city === "mumbai") score += 20;\n  else score += 5;\n\n  if (lead.source === "website") score += 20;\n\n  lead.score = score;\n\n  if (score >= 80) lead.priority = "High";\n  else if (score >= 50) lead.priority = "Medium";\n  else lead.priority = "Low";\n\n  return { json: lead };\n});'
+type	"n8n-nodes-base.code"
+typeVersion	2
+position	
+0	0
+1	-32
+id	"df346443-4b99-4987-9748-2fdbe57a9a79"
+name	"Code in JavaScript"
+3	
+parameters	
+operation	"append"
+documentId	
+__rl	true
+value	"YOUR_GOOGLE_SHEET_ID"
+mode	"id"
+cachedResultName	"YOUR_GOOGLE_SHEET_NAME"
+sheetName	
+__rl	true
+value	"YOUR_SHEET_TAB"
+mode	"list"
+cachedResultName	"Sheet1"
+columns	
+mappingMode	"defineBelow"
+value	
+name	"={{ $json.name }}"
+email	"={{ $json.email }}"
+budget	"={{ $json.budget }}"
+city	"={{ $json.city }}"
+score	"={{ $json.score }}"
+priority	"={{ $json.priority }}"
+created_at	"={{ $now }}"
+matchingColumns	[]
+schema	
+0	
+id	"name"
+displayName	"name"
+required	false
+defaultMatch	false
+display	true
+type	"string"
+canBeUsedToMatch	true
+1	
+id	"email"
+displayName	"email"
+required	false
+defaultMatch	false
+display	true
+type	"string"
+canBeUsedToMatch	true
+2	
+id	"budget"
+displayName	"budget"
+required	false
+defaultMatch	false
+display	true
+type	"string"
+canBeUsedToMatch	true
+3	
+id	"city"
+displayName	"city"
+required	false
+defaultMatch	false
+display	true
+type	"string"
+canBeUsedToMatch	true
+4	
+id	"score"
+displayName	"score"
+required	false
+defaultMatch	false
+display	true
+type	"string"
+canBeUsedToMatch	true
+5	
+id	"priority"
+displayName	"priority"
+required	false
+defaultMatch	false
+display	true
+type	"string"
+canBeUsedToMatch	true
+6	
+id	"created_at"
+displayName	"created_at"
+required	false
+defaultMatch	false
+display	true
+type	"string"
+canBeUsedToMatch	true
+attemptToConvertTypes	false
+convertFieldsToString	false
+options	{}
+type	"n8n-nodes-base.googleSheets"
+typeVersion	4.7
+position	
+0	208
+1	-32
+id	"6e44ba4e-03b7-4b09-b7ce-e8b1483e80bc"
+name	"Append row in sheet"
+onError	"continueRegularOutput"
+4	
+parameters	
+sendTo	"your-email@example.com"
+subject	"=New Lead - {{ $json.priority }} Priority"
+message	"=Lead Name : {{ $json.name }}\nBudget : {{ $json.budget }}\nCity : {{ $json.city }}\nScore : {{ $json.score }}\nPriority : {{ $json.priority }}"
+options	{}
+type	"n8n-nodes-base.gmail"
+typeVersion	2.2
+position	
+0	656
+1	176
+id	"2d0b0e94-f3f1-4a93-8d51-59f5523d6356"
+name	"Send a message"
+onError	"continueRegularOutput"
+5	
+parameters	
+conditions	
+options	
+caseSensitive	true
+leftValue	""
+typeValidation	"strict"
+version	3
+conditions	
+0	
+id	"af5d9067-f3b1-405d-8297-da7a5f0f4fe9"
+leftValue	"={{ $json.error }}"
+rightValue	"="
+operator	
+type	"string"
+operation	"exists"
+singleValue	true
+combinator	"and"
+options	{}
+type	"n8n-nodes-base.if"
+typeVersion	2.3
+position	
+0	416
+1	-32
+id	"a239e22f-dccd-4189-a7ca-5ef9d7158a57"
+name	"If"
+6	
+parameters	
+jsCode	'return {\n  error_message: $json.error?.message || "Unknown Error",\n  failed_step: "Google Sheets - Leads Append",\n  payload_snapshot: JSON.stringify($json),\n  timestamp: new Date().toISOString()\n};'
+type	"n8n-nodes-base.code"
+typeVersion	2
+position	
+0	672
+1	-160
+id	"c95b4a69-cde5-4024-9fef-664c1480cd0e"
+name	"Error_Logger_Prepare"
+7	
+parameters	
+operation	"append"
+documentId	
+__rl	true
+value	"YOUR_GOOGLE_SHEET_ID"
+mode	"id"
+cachedResultName	"YOUR_GOOGLE_SHEET_NAME"
+sheetName	
+__rl	true
+value	"YOUR_SHEET_TAB"
+mode	"list"
+cachedResultName	"Error_Logs"
+columns	
+mappingMode	"defineBelow"
+value	
+error_message	"={{$json.error_message}}"
+failed_step	"={{$json.failed_step}}"
+payload_snapshot	"={{$json.payload_snapshot}}"
+timestamp	"={{$json.timestamp}}"
+matchingColumns	[]
+schema	
+0	
+id	"error_message"
+displayName	"error_message"
+required	false
+defaultMatch	false
+display	true
+type	"string"
+canBeUsedToMatch	true
+1	
+id	"failed_step"
+displayName	"failed_step"
+required	false
+defaultMatch	false
+display	true
+type	"string"
+canBeUsedToMatch	true
+2	
+id	"payload_snapshot"
+displayName	"payload_snapshot"
+required	false
+defaultMatch	false
+display	true
+type	"string"
+canBeUsedToMatch	true
+3	
+id	"timestamp"
+displayName	"timestamp"
+required	false
+defaultMatch	false
+display	true
+type	"string"
+canBeUsedToMatch	true
+attemptToConvertTypes	false
+convertFieldsToString	false
+options	{}
+type	"n8n-nodes-base.googleSheets"
+typeVersion	4.7
+position	
+0	928
+1	-160
+id	"7c9b6322-4c6c-4a7b-bf0d-06906c3804ca"
+name	"Append row in sheet1"
+retryOnFail	false
+onError	"continueRegularOutput"
+8	
+parameters	
+conditions	
+options	
+caseSensitive	true
+leftValue	""
+typeValidation	"strict"
+version	3
+conditions	
+0	
+id	"2ecb7d57-d270-4bdd-8b21-acf6a5684b74"
+leftValue	"={{$json.error}}"
+rightValue	""
+operator	
+type	"string"
+operation	"exists"
+singleValue	true
+combinator	"and"
+options	{}
+type	"n8n-nodes-base.if"
+typeVersion	2.3
+position	
+0	864
+1	176
+id	"3d0d171d-c7cc-43a7-971b-849f39318c6f"
+name	"Check_Gmail_Error"
+9	
+parameters	
+jsCode	"return items.map(item => {\n  let retry = item.json.retry_count ?? 0;\n\n  if (retry >= 3) {\n    return {\n      json: {\n        ...item.json,\n        stop_retry: true\n      }\n    };\n  }\n\n  return {\n    json: {\n      ...item.json,\n      retry_count: retry + 1\n    }\n  };\n});"
+type	"n8n-nodes-base.code"
+typeVersion	2
+position	
+0	1120
+1	160
+id	"b021ad1e-a86c-4b3e-aaed-f5ad2f0c5b3e"
+name	"Code in JavaScript1"
+10	
+parameters	
+conditions	
+options	
+caseSensitive	true
+leftValue	""
+typeValidation	"strict"
+version	3
+conditions	
+0	
+id	"d6bedb91-02c7-4d81-91bb-ee8bbe6408bf"
+leftValue	"={{$json.stop_retry}}"
+rightValue	""
+operator	
+type	"boolean"
+operation	"true"
+singleValue	true
+combinator	"and"
+options	{}
+type	"n8n-nodes-base.if"
+typeVersion	2.3
+position	
+0	1344
+1	160
+id	"0ffa0e0b-042c-4e60-b79e-1102a737faaf"
+name	"Check_Stop_Retry"
+11	
+parameters	
+amount	10
+type	"n8n-nodes-base.wait"
+typeVersion	1.1
+position	
+0	1792
+1	416
+id	"983b731e-b06a-4b7c-8f59-5ff11575f12f"
+name	"Wait"
+12	
+parameters	
+jsCode	'return items.map(item => {\n  return {\n    json: {\n      error_message: JSON.stringify(item.json.error) || "Unknown Gmail Error",\n      failed_step: "Gmail - Send Email",\n      payload_snapshot: JSON.stringify(item.json),\n      timestamp: new Date().toISOString()\n    }\n  };\n});'
+type	"n8n-nodes-base.code"
+typeVersion	2
+position	
+0	1536
+1	-32
+id	"4cfc6c84-fad3-4a89-b8d4-5b4310d7a7e2"
+name	"Prepare_Gmail_Error_Log"
+13	
+parameters	
+operation	"append"
+documentId	
+__rl	true
+value	"YOUR_GOOGLE_SHEET_ID"
+mode	"id"
+cachedResultName	"YOUR_GOOGLE_SHEET_NAME"
+sheetName	
+__rl	true
+value	"YOUR_SHEET_TAB"
+mode	"list"
+cachedResultName	"Error_Logs"
+columns	
+mappingMode	"defineBelow"
+value	
+error_message	"={{$json.error_message}}"
+failed_step	"={{$json.failed_step}}"
+payload_snapshot	"={{$json.payload_snapshot}}"
+timestamp	"={{$json.timestamp}}"
+matchingColumns	[]
+schema	
+0	
+id	"error_message"
+displayName	"error_message"
+required	false
+defaultMatch	false
+display	true
+type	"string"
+canBeUsedToMatch	true
+1	
+id	"failed_step"
+displayName	"failed_step"
+required	false
+defaultMatch	false
+display	true
+type	"string"
+canBeUsedToMatch	true
+2	
+id	"payload_snapshot"
+displayName	"payload_snapshot"
+required	false
+defaultMatch	false
+display	true
+type	"string"
+canBeUsedToMatch	true
+3	
+id	"timestamp"
+displayName	"timestamp"
+required	false
+defaultMatch	false
+display	true
+type	"string"
+canBeUsedToMatch	true
+attemptToConvertTypes	false
+convertFieldsToString	false
+options	{}
+type	"n8n-nodes-base.googleSheets"
+typeVersion	4.7
+position	
+0	1744
+1	-32
+id	"02199e41-5c0d-45f8-82a0-6eb4709059d5"
+name	"Append row in sheet2"
+14	
+parameters	
+respondWith	"json"
+responseBody	'={\n  "status": "success",\n  "message": "Lead processed successfully",\n  "priority": "{{$json.priority}}",\n  "score": "{{$json.score}}"\n}'
+options	{}
+type	"n8n-nodes-base.respondToWebhook"
+typeVersion	1.5
+position	
+0	1088
+1	416
+id	"cc63ec0b-d642-42af-8daf-6c0ada98c083"
+name	"Respond_Success"
+15	
+parameters	
+respondWith	"json"
+responseBody	'{\n  "status": "failed",\n  "stage": "google_sheet",\n  "message": "Lead storage failed",\n  "error": "{{$json.error_message}}"\n}'
+options	{}
+type	"n8n-nodes-base.respondToWebhook"
+typeVersion	1.5
+position	
+0	1136
+1	-160
+id	"461facae-a3fa-4954-bb8f-98f50bbffde0"
+name	"Respond_Sheet_Error"
+16	
+parameters	
+respondWith	"json"
+responseBody	'={\n  "status": "failed",\n  "stage": "gmail_notification",\n  "message": "Email delivery failed after retries",\n  "error": "{{$json.error_message}}"\n}'
+options	{}
+type	"n8n-nodes-base.respondToWebhook"
+typeVersion	1.5
+position	
+0	1968
+1	-32
+id	"8c9fcf6d-c5f2-413a-9e0c-cb9183fed254"
+name	"Respond to Webhook"
+pinData	{}
+connections	
+Webhook	
+main	
+0	
+0	
+node	"Data Cleaning Layer"
+type	"main"
+index	0
+Data Cleaning Layer	
+main	
+0	
+0	
+node	"Code in JavaScript"
+type	"main"
+index	0
+Code in JavaScript	
+main	
+0	
+0	
+node	"Append row in sheet"
+type	"main"
+index	0
+Append row in sheet	
+main	
+0	
+0	
+node	"If"
+type	"main"
+index	0
+If	
+main	
+0	
+0	
+node	"Error_Logger_Prepare"
+type	"main"
+index	0
+1	
+0	
+node	"Send a message"
+type	"main"
+index	0
+Error_Logger_Prepare	
+main	
+0	
+0	
+node	"Append row in sheet1"
+type	"main"
+index	0
+Send a message	
+main	
+0	
+0	
+node	"Check_Gmail_Error"
+type	"main"
+index	0
+Check_Gmail_Error	
+main	
+0	
+0	
+node	"Code in JavaScript1"
+type	"main"
+index	0
+1	
+0	
+node	"Respond_Success"
+type	"main"
+index	0
+Code in JavaScript1	
+main	
+0	
+0	
+node	"Check_Stop_Retry"
+type	"main"
+index	0
+Check_Stop_Retry	
+main	
+0	
+0	
+node	"Prepare_Gmail_Error_Log"
+type	"main"
+index	0
+1	
+0	
+node	"Wait"
+type	"main"
+index	0
+Wait	
+main	
+0	
+0	
+node	"Send a message"
+type	"main"
+index	0
+Prepare_Gmail_Error_Log	
+main	
+0	
+0	
+node	"Append row in sheet2"
+type	"main"
+index	0
+Append row in sheet1	
+main	
+0	
+0	
+node	"Respond_Sheet_Error"
+type	"main"
+index	0
+Append row in sheet2	
+main	
+0	
+0	
+node	"Respond to Webhook"
+type	"main"
+index	0
+active	false
+settings	
+executionOrder	"v1"
+binaryMode	"separate"
+availableInMCP	false
+tags	[]
+nodes
+1
+parameters
+jsCode
