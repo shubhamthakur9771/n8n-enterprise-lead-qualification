@@ -11,7 +11,7 @@
   <img src="https://img.shields.io/badge/Notifications-Gmail-EA4335?style=for-the-badge&logo=gmail&logoColor=white" alt="Gmail">
 </p>
 
-[Overview](#-overview) · [Workflow](#-workflow-architecture) · [Scoring](#-lead-scoring) · [Setup](#-setup) · [Security](#-security--privacy) · [Roadmap](#-possible-improvements)
+[Overview](#-overview) · [Features](#-what-it-demonstrates) · [Workflow](#-workflow-architecture) · [Scoring](#-lead-scoring) · [Setup](#-setup) · [Roadmap](#-possible-improvements)
 
 </div>
 
@@ -103,7 +103,7 @@ These are example business rules in the supplied workflow, not universal qualifi
 n8n-project/
 ├── README.md
 ├── .gitignore
-├── SECURITY-REVIEW.md
+├── SECURITY-REVIEW.md  # Separate project security notes
 ├── screenshots/
 │   └── workflow-overview.png
 └── workflow/
@@ -139,7 +139,7 @@ In n8n, configure credentials using its credential manager:
 - Google Sheets OAuth2 credentials and access to the target spreadsheet.
 - Gmail OAuth2 credentials and permission to send notifications.
 
-The workflow artifact contains placeholder spreadsheet identifiers and a placeholder recipient address. Replace them inside n8n with values appropriate to your environment. Do not commit real credentials, OAuth tokens, private keys, or production personal data.
+The workflow artifact contains placeholder spreadsheet identifiers and a placeholder recipient address. Replace them inside n8n with values appropriate to your environment. Store integration credentials in n8n's credential manager.
 
 ### 4. Configure Google Sheets
 
@@ -153,7 +153,6 @@ Create a spreadsheet with tabs and columns that match the workflow's mappings.
 
 `error_message`, `failed_step`, `payload_snapshot`, `timestamp`
 
-Review the privacy guidance below before enabling payload snapshots.
 
 ### 5. Test the webhook
 
@@ -173,29 +172,6 @@ Use fictional test data. Do not test with real customer information in a public 
 
 The webhook path in the supplied artifact is `lead-qualification-demo`. n8n generates the full test and production URLs for your instance.
 
-## 🔐 Security & privacy
-
-Security review of the supplied archive:
-
-- No obvious live API keys, passwords, OAuth access tokens, or private-key material were found in the inspected workflow and README.
-- Google Sheets document IDs, sheet names, tab names, and recipient email are placeholders.
-- n8n credentials should be stored in n8n's credential manager, not embedded in exported workflow JSON or source files.
-- The workflow's `payload_snapshot` error fields serialize the input payload. This can put names, email addresses, budgets, and other personal data into an error spreadsheet. Prefer logging a minimal, redacted diagnostic record instead.
-- Protect the webhook with authentication or another appropriate access-control mechanism before exposing it publicly. Consider rate limits and input validation.
-- Restrict access to the Google spreadsheet and n8n instance. Apply retention limits to lead and error data.
-- Review error responses before production use; avoid returning internal error details to external callers.
-
-See [`SECURITY-REVIEW.md`](SECURITY-REVIEW.md) for the detailed audit notes.
-
-## 🛣️ Possible improvements
-
-- Add schema validation and reject malformed or incomplete lead submissions.
-- Make scoring thresholds configurable rather than embedding them in JavaScript.
-- Add deduplication using a stable lead identifier or normalized email.
-- Redact personal data from error logs and define retention policies.
-- Add authenticated webhook access, rate limiting, and abuse monitoring.
-- Add automated workflow tests for scoring boundaries and failure paths.
-- Add a dead-letter path and operational alerts for repeated integration failures.
 
 ## 📚 References
 
